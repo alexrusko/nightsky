@@ -13,8 +13,21 @@
     background: rgb(5, 2, 14);
 }
 
+#controll-panel {
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+}
+
 #sky-container {
     position: relative;
+    width: 600px;
+    height: 600px;
+}
+
+.cnvs {
+    position: absolute;
+    transform: rotate(-90deg);
 }
 
 .poc {
