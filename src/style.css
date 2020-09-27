@@ -1,7 +1,6 @@
 * {
     margin: 0;
     padding: 0;
-    color: white;
 }
 
 #app {
@@ -13,10 +12,27 @@
     background: rgb(5, 2, 14);
 }
 
-#controll-panel {
+#control-panel {
     position: absolute;
     bottom: 30px;
     right: 30px;
+    width: 350px;
+    color: white;
+}
+
+#control-panel > div {
+    margin: 5px 0;
+    display: flex;
+    justify-content: space-between;
+}
+
+#lat,
+#lon {
+    width: 100px;
+}
+
+#loader {
+    height: 20px;
 }
 
 #sky-container {
@@ -31,6 +47,7 @@
 }
 
 .poc {
+    color: white;
     position: absolute;
 }
 

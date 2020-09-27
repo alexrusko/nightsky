@@ -6,7 +6,7 @@
     <title>Document</title>
     <link rel="stylesheet" href="src/style.css">
     <script src="src/data.js" defer></script>
-    <script src="src/constellations2.js" defer></script>
+    <script src="src/constellations.js" defer></script>
     <script src="src/script.js" defer></script>
 </head>
 <body>
@@ -19,15 +19,26 @@
             <canvas id="sky-canvas" class="cnvs" width="600px" height="600px"></canvas>
             <canvas id="constellation-canvas" class="cnvs" width="600px" height="600px"></canvas>
         </div>
-        <div id="controll-panel">
+        <div id="control-panel">
             <div>
-                <label for="timePicker">Pick a time</label>
+                <div>
+                    <label for="lat">Latitude</label>
+                    <input id="lat" type="text">
+                </div>
+                <div>
+                    <label for="lon">Longitude</label>
+                    <input id="lon" type="text">
+                </div>
+            </div>
+            <div>
+                <label for="timePicker">Date</label>
                 <input id="timePicker" type="datetime-local">
             </div>
             <div>
                 <label for="constellation-toggle">Display constellations</label>
                 <input type="checkbox" id="constellation-toggle">
             </div>
+            <div id="loader"></div>
         </div>
     </div>
 </body>
