@@ -23,16 +23,18 @@
 #control-panel > div {
     margin: 5px 0;
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
+    width: 100%;
+}
+
+#control-panel label,
+#control-panel input {
+    margin-right: 5px;
 }
 
 #lat,
 #lon {
-    width: 100px;
-}
-
-#loader {
-    height: 20px;
+    width: 80px;
 }
 
 #sky-container {
@@ -43,7 +45,6 @@
 
 .cnvs {
     position: absolute;
-    transform: rotate(-90deg);
 }
 
 .poc {
@@ -69,8 +70,4 @@
 .west {
     top: 300px;
     left: -30px;
-}
-
-#sky-canvas {
-    border-radius: 50%;
 }

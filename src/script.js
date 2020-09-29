@@ -7,15 +7,17 @@ window.addEventListener('load', function() {
     const constellationCtx = constellationCanvas.getContext('2d');
     const latInput = document.getElementById('lat');
     const lonInput = document.getElementById('lon');
-    const loader = document.getElementById('loader');
-    const width = skyCanvas.width;
-    const height = skyCanvas.height;
+    const width = 600;
     const starDataParsed = JSON.parse(starData);
+
+    skyCtx.translate(width/2, width/2);
+    skyCtx.rotate(-Math.PI / 180 * 90);
+    constellationCtx.translate(width/2, width/2);
+    constellationCtx.rotate(-Math.PI / 180 * 90);
 
     let constellationsToggled = false;
     let now = new Date();
-    timeInput.value = now.toISOString().replace('Z', '');
-    //`${now.getFullYear()}-${now.getMonth()}-${now.getDate()}T${now.getHours()}:${now.getMinutes()}`;
+    timeInput.value = formatDate(now);
     let lat = 47.4833;
     let lon = 19.0333;
 
@@ -37,17 +39,17 @@ window.addEventListener('load', function() {
     function drawStars() {
         const t1 = performance.now();
         starDataParsed.forEach((data) => {
-            const { id, deDeg, deMinutes, raHours, raMinutes, magnitude, spectralType } = data;
+            const { deDeg, deMinutes, raHours, raMinutes, magnitude, spectralType } = data;
             const { altitude, x, y } = getPosition(raHours, raMinutes, deDeg, deMinutes)
         
             if (altitude > 0 && magnitude < 6) {
-                const size = calculateSize(magnitude);
-                const color = getColor(spectralType);
+                const size = magnitudeToPixels(magnitude);
+                const color = spectralTypeToHexColor(spectralType);
                 skyCtx.beginPath();
                 skyCtx.fillStyle = color;
                 skyCtx.shadowColor = color;
                 skyCtx.shadowBlur = 5;
-                skyCtx.arc((width / 2) + x, (height / 2) + y, size, 0, 2 * Math.PI)
+                skyCtx.arc(x, y, size, 0, 2 * Math.PI);
                 skyCtx.fill();
                 skyCtx.closePath();   
             }
@@ -56,85 +58,27 @@ window.addEventListener('load', function() {
         console.log('time: ' + (t2 - t1) + 'millis');
     };
 
-    function clearStars() {
-        skyCtx.clearRect(0, 0, width, height);
-    };
-
-    function drawConstellations() {
-        constellations.forEach((constellation) => {
-            for (let i = 0; i < constellation.length; i+= 2) {
-                const starFrom = starDataParsed.filter(star => star.id === constellation[i])[0];
-                const starTo = starDataParsed.filter(star => star.id === constellation[i+1])[0];
-                const { x: x1, y: y1, altitude: altitude1 } = getPosition(starFrom.raHours, starFrom.raMinutes, starFrom.deDeg, starFrom.deMinutes);
-                const { x: x2, y: y2, altitude: altitude2 } = getPosition(starTo.raHours, starTo.raMinutes, starTo.deDeg, starTo.deMinutes);
-                if (altitude1 > 0 && altitude2 > 0) {
-                    constellationCtx.shadowBlur = 3;
-                    constellationCtx.shadowColor = 'white';
-                    constellationCtx.beginPath();
-                    constellationCtx.moveTo((width / 2) + x1, (height / 2) + y1);
-                    constellationCtx.lineTo((width / 2) + x2, (height / 2) + y2);
-                    constellationCtx.strokeStyle = 'white';
-                    constellationCtx.lineWidth = 0.3;
-                    constellationCtx.stroke();
-                    constellationCtx.closePath();
-                }
-            }
-        });
-    };
-
-    function clearConstellations() {
-        constellationCtx.clearRect(0, 0, width, height);
-    };
-
-    function toggleLoader() {
-        if (loader.innerText) {
-            loader.innerText = '';
-        } else {
-            loader.innerText = 'Loading...';
-        }
-    };
-
-    function reDrawCanvas() {
-        clearStars();
-        drawStars();
-            
-        if (constellationsToggled) {
-            clearConstellations();
-            drawConstellations();
-        }
-    }
-
-    function getPosition(raHours, raMinutes, deDeg, deMinutes) {
-        const raReal  = ra2real( raHours, raMinutes );
-        const decReal = dms2real( deDeg, deMinutes );
-        const [altitude, azimuth] = coordToHorizon(now, raReal, decReal, lat, lon);
-        const radius = 300 * Math.cos(altitude * Math.PI/180);
-        const x = radius * Math.cos(azimuth * Math.PI/180);
-        const y = radius * Math.sin(azimuth * Math.PI/180);
-        return { altitude, azimuth, x, y };
-    }
-
-    function calculateSize(magnitude) {
+    function magnitudeToPixels(magnitude) {
         if (magnitude < 6 && magnitude >= 5) {
-            return 0.1;
-        } else if (magnitude < 5 && magnitude >= 4) {
             return 0.25;
-        } else if (magnitude < 4 && magnitude >= 2.5) {
+        } else if (magnitude < 5 && magnitude >= 4) {
             return 0.5;
-        } else if (magnitude < 2.5 && magnitude >= 1.5) {
+        } else if (magnitude < 4 && magnitude >= 2.5) {
             return 1;
-        } else if (magnitude < 1.5 && magnitude >= 0.5) {
+        } else if (magnitude < 2.5 && magnitude >= 1.5) {
             return 2;
-        } else if (magnitude < 0.5 && magnitude >= -0.5) {
+        } else if (magnitude < 1.5 && magnitude >= 0.5) {
             return 3;
-        } else if (magnitude < -0.5 && magnitude >= -1.5) {
+        } else if (magnitude < 0.5 && magnitude >= -0.5) {
             return 4;
-        } else {
+        } else if (magnitude < -0.5 && magnitude >= -1.5) {
             return 5;
+        } else {
+            return 6;
         }
     }
 
-    function getColor(spectralType) {
+    function spectralTypeToHexColor(spectralType) {
         const spectralClass = spectralType.charAt(0);
         let color = '#fff';
         switch (spectralClass) {
@@ -164,48 +108,85 @@ window.addEventListener('load', function() {
         return color;
     };
 
-    // convert right ascension (hours, minutes) to degrees as real
-    function ra2real(hr, min) {
-        return 15*(hr + min/60);
+    function clearStars() {
+        skyCtx.clearRect(-width / 2, -width / 2, width, width);
     };
 
-    // convert angle (deg, min) to degrees as real
+    function drawConstellations() {
+        constellations.forEach((constellation) => {
+            for (let i = 0; i < constellation.length; i+= 2) {
+                const starFrom = starDataParsed.find(star => star.id === constellation[i]);
+                const starTo = starDataParsed.find(star => star.id === constellation[i+1]);
+                const { x: x1, y: y1, altitude: altitude1 } = getPosition(starFrom.raHours, starFrom.raMinutes, starFrom.deDeg, starFrom.deMinutes);
+                const { x: x2, y: y2, altitude: altitude2 } = getPosition(starTo.raHours, starTo.raMinutes, starTo.deDeg, starTo.deMinutes);
+                if (altitude1 > 0 && altitude2 > 0) {
+                    constellationCtx.beginPath();
+                    constellationCtx.moveTo(x1, y1);
+                    constellationCtx.lineTo(x2, y2);
+                    constellationCtx.strokeStyle = 'white';
+                    constellationCtx.lineWidth = 0.5;
+                    constellationCtx.shadowBlur = 3;
+                    constellationCtx.shadowColor = 'white';
+                    constellationCtx.stroke();
+                    constellationCtx.closePath();
+                }
+            }
+        });
+    };
+
+    function clearConstellations() {
+        constellationCtx.clearRect(-width / 2, -width / 2, width, width);
+    };
+
+    function reDrawCanvas() {
+        clearStars();
+        drawStars();
+            
+        if (constellationsToggled) {
+            clearConstellations();
+            drawConstellations();
+        }
+    }
+
+    function getPosition(raHours, raMinutes, deDeg, deMinutes) {
+        const raReal  = ra2real( raHours, raMinutes );
+        const decReal = dms2real( deDeg, deMinutes );
+        const [altitude, azimuth] = coordToHorizon(now, raReal, decReal, lat, lon);
+        const radius = 300 * Math.cos(altitude * Math.PI/180);
+        const x = radius * Math.cos(azimuth * Math.PI/180);
+        const y = radius * Math.sin(azimuth * Math.PI/180);
+        return { altitude, azimuth, x, y };
+    }
+
+    function ra2real(hr, min) {
+        return 15*(hr + min / 60);
+    };
+
     function dms2real(deg, min) {
-        return deg < 0 ? deg - min/60 : deg + min/60;
+        return deg < 0 ? deg - min / 60 : deg + min / 60;
     };
 
     function coordToHorizon(utc, ra, dec, lat, lon) {
-        // compute hour angle in degrees
         let ha = meanSiderealTime(utc, lon) - ra;
         if (ha < 0) {
             ha = ha + 360;   
         }
 
-        // convert degrees to radians
         const haRad  = ha*Math.PI/180
         const decRad = dec*Math.PI/180
         const latRad = lat*Math.PI/180
 
-        // compute altitude in radians
         const sinAlt = Math.sin(decRad)*Math.sin(latRad) + Math.cos(decRad)*Math.cos(latRad)*Math.cos(haRad);
         const alt = Math.asin(sinAlt);
         
-        // compute azimuth in radians
-        // divide by zero error at poles or if alt = 90 deg
         const cosAz = (Math.sin(decRad) - Math.sin(alt)*Math.sin(latRad))/(Math.cos(alt)*Math.cos(latRad));
         const az  = Math.acos(cosAz) * 180/Math.PI;
-
-        // convert radians to degrees
         const altitude = alt*180/Math.PI;
         const azimuth  = Math.sin(haRad) > 0 ? 360 - az : az;
         
         return [altitude, azimuth];
     };
 
-    // Compute the Mean Sidereal Time in units of degrees. 
-    // Use lon := 0 to get the Greenwich MST. 
-    // East longitudes are positive; West longitudes are negative
-    // returns: time in degrees
     function meanSiderealTime(now, lon) {
         let year   = now.getUTCFullYear();
         let month  = now.getUTCMonth() + 1;
@@ -224,16 +205,12 @@ window.addEventListener('load', function() {
         const c = Math.floor(365.25*year);
         const d = Math.floor(30.6001*(month + 1));
 
-        // days since J2000.0
         const jd = b + c + d - 730550.5 + day + (hour + minute/60.0 + second/3600.0)/24.0;
         
-        // julian centuries since J2000.0
         const jt = jd/36525.0;
 
-        // the mean sidereal time in degrees
         let mst = 280.46061837 + 360.98564736629*jd + 0.000387933*jt*jt - jt*jt*jt/38710000 + lon;
 
-        // in degrees modulo 360.0
         if (mst > 0.0) {
             while (mst > 360.0) mst = mst - 360.0;
         } else {
@@ -242,6 +219,19 @@ window.addEventListener('load', function() {
             
         return mst;
     };
+
+    function formatDate(date) {
+        const y = date.getFullYear();
+        const M = date.getMonth() + 1;
+        const d = date.getDate();
+        const h = date.getHours();
+        const m = date.getMinutes();
+        const MM = M < 10 ? '0' + M : M;
+        const dd = d < 10 ? '0' + d : d;
+        const hh = h < 10 ? '0' + h : h;
+        const mm = m < 10 ? '0' + m : m;
+        return `${y}-${MM}-${dd}T${hh}:${mm}`;
+    }
 
     timeInput.addEventListener('input', function(e) {
         const { value } = e.target;
@@ -254,7 +244,6 @@ window.addEventListener('load', function() {
     latInput.addEventListener('blur', function(e) {
         const { value } = e.target;
         const parsedValue = parseFloat(value);
-        console.log(lat === parsedValue)
         if (lat !== parsedValue) {
             lat = parsedValue;
             reDrawCanvas();
